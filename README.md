@@ -1,2 +1,2 @@
 # natours
-My first bit node.js project
+My first big node.js project
