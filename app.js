@@ -1,17 +1,34 @@
 const express = require('express');
 const fs = require('fs');
-const app = express();
-app.use(express.json()); //middleware(that can modify the incoming request data)(to access req.body)
+const morgan = require('morgan');
 
+const app = express();
+
+//1: MIDDLEWARE
+app.use(morgan('dev')); //http request logging middleware
+app.use(express.json()); //middleware(that can modify the incoming request data)(to access req.body)
+//this middleware applies to all requests coz we didn't specify any route
+app.use((req, res, next) => {
+  // console.log('Hello from the middleware');
+  next();
+});
+
+app.use((req, res, next) => {
+  req.requestTime = new Date().toISOString();
+  next();
+});
 //__dirname is the location of the current script
 //JSON.parse -> converts json to array of JS objects
 const tours = JSON.parse(
   fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
 );
 
+//2: ROUTE HANDLERS
 const getAllTours = (req, res) => {
+  //console.log(req.resquestTime);
   res.status(200).json({
     status: 'success',
+    requestedAt: req.requestTime,
     results: tours.length, // tours is an array
     data: {
       tours: tours, //or just tours(es6)
@@ -83,14 +100,47 @@ const deleteTour = (req, res) => {
   });
 };
 
+const getAllUsers = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route is not yet defined',
+  });
+};
+const createUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route is not yet defined',
+  });
+};
+const getUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route is not yet defined',
+  });
+};
+const updateUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route is not yet defined',
+  });
+};
+const deleteUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route is not yet defined',
+  });
+};
+
 //put,patch ->to update data, put->entire updated obj,patch->only some updated properties
 //tours is the resource now!(verb)
+//old way
 // app.get('/api/v1/tours', getAllTours);
 // app.get('/api/v1/tours/:id/', getTour);
 // app.post('/api/v1/tours', createTour);
 // app.patch('/api/v1/tours/:id', updateTour);
 // app.delete('/api/v1/tours/:id', deleteTour);
 
+//3: ROUTES
 app.route('/api/v1/tours').get(getAllTours).post(createTour);
 
 app
@@ -99,6 +149,15 @@ app
   .patch(updateTour)
   .delete(deleteTour);
 
+app.route('/api/v1/users').get(getAllUsers).post(createUser);
+
+app
+  .route('/api/v1/users/:id')
+  .get(getUser)
+  .patch(updateUser)
+  .delete(deleteUser);
+
+//4:STARTING THE SERVER
 const port = 3000;
 app.listen(port, () => {
   console.log(`app running on port ${port} ...`);
