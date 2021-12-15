@@ -20,6 +20,7 @@ mongoose
   .then(() => {
     console.log('DB connection successfull!');
   });
+
 //console.log(process.env);
 //:STARTING THE SERVER
 const port = 3000 || process.env.port;
