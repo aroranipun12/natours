@@ -47,6 +47,7 @@ const tourSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now(),
+    select: false, //to exclude it from client(response m nahi jayega ye field)
   },
   startDates: [Date],
 });

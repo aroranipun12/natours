@@ -65,6 +65,14 @@ exports.getAllTours = async (req, res) => {
       query = query.sort('-createdAt'); // so that new ones appear first
     }
 
+    //3. Field Limiting(let say client only want the names)
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+      // - means excluding
+    }
     // execute query
     const tours = await query;
 
