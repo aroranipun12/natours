@@ -32,8 +32,39 @@ const Tour = require('../models/tourModel');
 exports.getAllTours = async (req, res) => {
   //find returns a promise, also it returns an array
   try {
-    const tours = await Tour.find();
+    //first we build the query
+    //making a hard copy
 
+    //1A. Filtering
+    const queryObj = { ...req.query }; //es6 trick of copying
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    //removing fields from queryObj
+    excludedFields.forEach((el) => delete queryObj[el]);
+
+    // console.log(req.query);
+    // console.log(queryObj);
+
+    // 1B. Advanced Filtering
+    let queryStr = JSON.stringify(queryObj);
+    // console.log(queryStr);
+    // {diffculty:'easy', duration: {$gte:5} }
+    // { duration: { gte: '5' }, difficulty: 'easy' }
+
+    // to replace -> gte,gt,lte,lt with $gte...... using regular exp
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    console.log(JSON.parse(queryStr));
+    // writing query(these methods like find,they return a query)
+    let query = Tour.find(JSON.parse(queryStr));
+
+    // 2. Sorting
+    if (req.query.sort) {
+      query = query.sort(req.query.sort);
+    }
+
+    // execute query
+    const tours = await query;
+
+    //Send response
     res.status(200).json({
       status: 'success',
       results: tours.length, // tours is an array
@@ -41,6 +72,13 @@ exports.getAllTours = async (req, res) => {
         tours: tours, //or just tours(es6)
       },
     });
+
+    //Another way of doing the same thing
+    // const query = await Tour.find()
+    //   .where('duration')
+    //   .equals(req.query.duration)
+    //   .where('difficulty')
+    //   .equals(req.query.difficulty);
   } catch (err) {
     res.status(404).json({
       status: 'fail',
