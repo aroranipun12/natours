@@ -1,5 +1,6 @@
 const fs = require('fs');
 const Tour = require('../models/tourModel');
+const APIFeatures = require('../utils/apiFeatures');
 //__dirname is the location of the current script
 
 //only for testing
@@ -7,87 +8,23 @@ const Tour = require('../models/tourModel');
 // const tours = JSON.parse(
 //   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`)
 // );
+//middleware(aliasing)
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+  next();
+};
 
-// exports.checkBody = (req, res, next) => {
-//   if (!req.body.name || !req.body.price) {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'missing name or price',
-//     });
-//   }
-//   next();
-// };
-
-// exports.checkID = (req, res, next, val) => {
-//   console.log(`Tour id is ${val}`);
-//   //validating tour id here
-//   if (req.params.id * 1 > tours.length) {
-//     return res.status(404).json({
-//       status: 'Failed',
-//       message: 'Invalid ID',
-//     });
-//   }
-//   next();
-// };
 exports.getAllTours = async (req, res) => {
-  //find returns a promise, also it returns an array
   try {
-    //first we build the query
-    //making a hard copy
-
-    //1A. Filtering
-    const queryObj = { ...req.query }; //es6 trick of copying
-    const excludedFields = ['page', 'sort', 'limit', 'fields'];
-    //removing fields from queryObj
-    excludedFields.forEach((el) => delete queryObj[el]);
-
-    // console.log(req.query);
-    // console.log(queryObj);
-
-    // 1B. Advanced Filtering
-    let queryStr = JSON.stringify(queryObj);
-    // console.log(queryStr);
-    // {diffculty:'easy', duration: {$gte:5} }
-    // { duration: { gte: '5' }, difficulty: 'easy' }
-
-    // to replace -> gte,gt,lte,lt with $gte...... using regular exp
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-    console.log(JSON.parse(queryStr));
-    // writing query(these methods like find,they return a query)
-    let query = Tour.find(JSON.parse(queryStr));
-
-    // 2. Sorting
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-      // sort('price ratingsAverage')
-    } else {
-      query = query.sort('-createdAt'); // so that new ones appear first
-    }
-
-    //3. Field Limiting(let say client only want the names)
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v');
-      // - means excluding
-    }
-
-    // 4. Pagination
-    //default is page 1 , *1 for string to number
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 100;
-    const skip = (page - 1) * limit;
-
-    query = query.skip(skip).limit(limit);
-    if (req.query.page) {
-      const numTours = await Tour.countDocuments();
-      if (skip >= numTours) throw new Error('This page does not exist');
-    }
-
     // execute query
-    const tours = await query;
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .paginate()
+      .limitFields();
+    const tours = await features.query;
 
     //Send response
     res.status(200).json({
@@ -97,13 +34,6 @@ exports.getAllTours = async (req, res) => {
         tours: tours, //or just tours(es6)
       },
     });
-
-    //Another way of doing the same thing
-    // const query = await Tour.find()
-    //   .where('duration')
-    //   .equals(req.query.duration)
-    //   .where('difficulty')
-    //   .equals(req.query.difficulty);
   } catch (err) {
     res.status(404).json({
       status: 'fail',
@@ -128,15 +58,6 @@ exports.getTour = async (req, res) => {
     });
   }
 };
-
-// const tour = tours.find((el) => el.id === id);
-
-// res.status(200).json({
-//   status: 'success',
-//   data: {
-//     tour,
-//   },
-// });
 
 exports.createTour = async (req, res) => {
   // const newTour = new Tour({})
